@@ -1,0 +1,17 @@
+- name: "IPSec iptables | Input chain rules for port 4500"
+  ansible.builtin.iptables:
+    action: insert
+    chain: INPUT
+    protocol: udp
+    destination_port: "4500"
+    jump: ACCEPT
+  become: true
+
+- name: "IPSec iptables | Input chain rules for port 500"
+  ansible.builtin.iptables:
+    action: insert
+    chain: INPUT
+    protocol: udp
+    destination_port: "500"
+    jump: ACCEPT
+  become: true

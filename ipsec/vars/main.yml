@@ -1,0 +1,7 @@
+---
+# vars file for ipsec
+psk: "RAhISGgZWd8hMzmRgAQ/KPahbbBxHL/G"
+right_source_ip: "10.10.10.0/24"
+user_vpn:
+  name: "student"
+  password: "pass"

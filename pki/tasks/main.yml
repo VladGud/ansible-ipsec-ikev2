@@ -1,0 +1,45 @@
+---
+# tasks file for pki
+- name: PKI | Install pki packets 
+  ansible.builtin.apt:
+    pkg: strongswan-pki
+    state: latest
+    update_cache: true
+  become: true
+
+- name: PKI | Make pki directory
+  ansible.builtin.file:
+    path: "{{ pki.prefix_dir }}/{{ item }}"
+    state: directory
+    mode: 0700
+  become: true
+  loop:
+    - cacerts
+    - certs
+    - private
+
+- name: PKI | Generate root private key
+  ansible.builtin.shell: "pki --gen --type rsa --size 4096 --outform pem  > \ 
+                         {{ pki.prefix_dir }}/private/ca-key.pem"
+  become: true
+  delegate_to: server
+
+- name: PKI | Generate ca-cert
+  ansible.builtin.shell: "pki --self --ca --lifetime 3650 --in \
+                         {{ pki.prefix_dir }}/private/ca-key.pem --type rsa \
+                         --dn 'CN=VPN root CA' --outform pem > \ 
+                         {{ pki.prefix_dir }}/cacerts/ca-cert.pem"
+  become: true
+
+- name: PKI | Generate private server key
+  ansible.builtin.shell: "pki --gen --type rsa --size 4096 --outform pem > \ 
+                         {{ pki.prefix_dir }}/private/server-key.pem"
+  become: true
+
+- name: PKI | Generate private server cert
+  ansible.builtin.shell: "pki --pub --in {{ pki.prefix_dir }}/private/server-key.pem --type rsa \
+      | pki --issue --lifetime 1825 --cacert {{ pki.prefix_dir }}/cacerts/ca-cert.pem --cakey \ 
+      {{ pki.prefix_dir }}/private/ca-key.pem --dn 'CN={{ ansible_host }}' --san \
+      {{ ansible_host }} --flag serverAuth --flag ikeIntermediate --outform pem \
+      > {{ pki.prefix_dir }}/certs/server-cert.pem"
+  become: true

@@ -1,0 +1,79 @@
+---
+- name: IPSec | Install strongswan
+  ansible.builtin.apt:
+    pkg:
+      - strongswan
+      - libcharon-extra-plugins
+      - libcharon-extauth-plugins
+      - libstrongswan-extra-plugins
+      - libtss2-tcti-tabrmd-dev
+      - sshpass
+    state: latest
+    update_cache: true
+  become: true
+
+- name: IPSec | Reload strongswan
+  ansible.builtin.systemd:
+    name: strongswan-starter
+    enabled: true
+    state: reloaded
+    daemon_reload: true
+  become: true
+
+- name: IPSec | Copy config files
+  ansible.builtin.copy:
+    src: "99-vpn-ipsec.conf"
+    dest: "/etc/sysctl.d/99-vpn-ipsec.conf"
+    owner: root
+    mode: 0644
+  become: true
+
+- name: IPSec | Allow net ip forward
+  ansible.builtin.shell: "sysctl -p /etc/sysctl.d/99-vpn-ipsec.conf"
+  become: true
+
+- name: IPSec | Copy config files to hosts
+  ansible.builtin.template:
+    src: "ipsec_{{ item }}_default.conf.j2"
+    dest: "/etc/ipsec.conf"
+    owner: root
+    mode: 0644
+  loop:
+    - client
+    - server
+  run_once: true
+  become: true
+  delegate_to: "{{ item }}"
+
+- name: IPSec | Copy secrets files to hosts
+  ansible.builtin.template:
+    src: "ipsec_{{ item }}.secrets.j2"
+    dest: "/etc/ipsec.secrets"
+    owner: root
+    mode: 0644
+  loop:
+    - client
+    - server
+  run_once: true
+  become: true
+  delegate_to: "{{ item }}"
+
+- name: IPSec | Copy pki to server
+  ansible.posix.synchronize:
+    src: "{{ pki.prefix_dir }}/"
+    dest: "/etc/ipsec.d/"
+  run_once: true
+  become: true
+  delegate_to: server
+
+- name: IPSec | Iptables rules
+  ansible.builtin.import_tasks: 
+    file: iptables.yml
+
+- name: IPSec | Run strongswan
+  ansible.builtin.systemd:
+    name: strongswan-starter
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true

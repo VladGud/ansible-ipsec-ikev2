@@ -1,0 +1,17 @@
+config setup
+        charondebug="all"
+        uniqueids=yes
+        strictcrlpolicy=no
+
+conn ipsec-ikev2-vpn-client
+        auto=start
+        right={{ ansible_host }}
+        rightid={{ ansible_host }}
+        rightsubnet=0.0.0.0/0
+        rightauth=pubkey
+        leftsourceip=%config
+        leftid={{ user_vpn.name }}
+        leftauth=eap-mschapv2
+        eap_identity=%identity
+
+
